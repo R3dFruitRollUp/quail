@@ -190,7 +190,9 @@ def compute_distances(pres_list, feature_list, dist_funcs, dist_funcs_dict):
 
     return distances
 
+
 def compute_feature_weights(pres_list, rec_list, feature_list, distances):
+
     """
     Compute clustering scores along a set of feature dimensions
 
@@ -211,16 +213,19 @@ def compute_feature_weights(pres_list, rec_list, feature_list, distances):
         list of clustering scores for each feature dimension
     """
 
+
     # initialize the weights object for just this list
     weights = {}
     for feature in feature_list[0]:
         weights[feature] = []
 
-    # return default list if there is not enough data to compute the fingerprint
-    if len(rec_list) <= 2:
-        print('Not enough recalls to compute fingerprint, returning default fingerprint.. (everything is .5)')
+    # return NaNs if there is not enough data to compute the fingerprint
+    if len([i for i in rec_list if i in pres_list]) <= 2:
+
+        print('Not enough recalls to compute fingerprint, setting fingerprint to NaNs')
         for feature in feature_list[0]:
-            weights[feature] = .5
+            weights[feature] = np.nan
+
         return [weights[key] for key in weights]
 
     # initialize past word list
@@ -257,17 +262,22 @@ def compute_feature_weights(pres_list, rec_list, feature_list, distances):
                 # compute the weight
                 weights[feature].append(avg_rank / len(dists_filt))
 
+
+
             # keep track of what has been recalled already
             past_idxs.append(pres_list.index(c))
             past_words.append(c)
 
     # average over the cluster scores for a particular dimension
     for feature in weights:
+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
             weights[feature] = np.nanmean(weights[feature])
 
+
     return [weights[key] for key in weights]
+
 
 # def single_perm(p, r, f, distances):
 #     r_real = compute_feature_weights(p, r, f, distances)
@@ -582,10 +592,13 @@ def fingerprint_helper(pres_slice, rec_slice, feature_slice, dist_funcs, permute
             else:
                 fingerprint_matrix.append(compute_feature_weights(p, r, f, distances))
         else:
-            fingerprint_matrix.append([np.nan]*len(list(f[0].keys())))
+            print('Not enough recalls to compute fingerprint, setting fingerprint to NaNs')
+            fingerprint_matrix.append([np.nan]*len(f[0].keys()))
 
     # return average over rows
-    return np.mean(fingerprint_matrix, axis=0)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        return np.nanmean(fingerprint_matrix, axis=0)
 
 # fingerprint + temporal clustering analysis
 def fingerprint_temporal_helper(pres_slice, rec_slice, feature_slice, dist_funcs, permute=True, n_perms=1000):
